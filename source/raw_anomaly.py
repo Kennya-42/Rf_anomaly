@@ -14,16 +14,13 @@ start = timer()
 data = scipy.fromfile('out_longer.dat', dtype=complex)
 data = data.astype(float)
 samples_n = data.shape[0]
-data = data[:samples_n//25]
-# filtered = scipy.signal.wiener(data)
-# history = [x for x in filtered[:20]]#was 20
-# predictions = list()
+data = data[:samples_n//2]
+filtered = scipy.signal.wiener(data)
 ################PLOT######################
-# plt.plot(data,label='raw',linewidth=1)
-# plt.plot(filtered,label='filtered',linewidth=1,linestyle='dashed')
-# plt.plot(predictions,label='pred',linewidth=1,linestyle='dashed')
-# plt.legend()
-# plt.title('complex ARMA+wiener filter')
+plt.plot(data,label='raw',linewidth=1)
+plt.plot(filtered,label='filtered',linewidth=1,linestyle='dashed')
+plt.legend()
+plt.title('complex ARMA+wiener filter')
 end = timer()
 print((end - start)/60.0,'mins')
-# plt.show()
+plt.show()
