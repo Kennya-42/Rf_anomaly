@@ -1,3 +1,7 @@
+#!/usr/bin/python3
+# feat_anomaly.py
+# Author: Ken Alexopoulos
+# Script to look at features in rf data
 import numpy as np 
 import scipy
 import matplotlib.pyplot as plt

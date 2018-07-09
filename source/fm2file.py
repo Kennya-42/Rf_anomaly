@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 #
 # SPDX-License-Identifier: GPL-3.0
