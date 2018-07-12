@@ -23,7 +23,7 @@ def ARMA_Prediction(data):
 ##################################################################
 CENTER_FREQ = 91.3e6 
 SAMPLE_RATE = 5000000
-SAMPLE_SIZE = (SAMPLE_RATE//100)     
+SAMPLE_SIZE = (SAMPLE_RATE//100)
 N = 500                                    
 data_raw = scipy.fromfile('out_long.dat', dtype=complex)
 data_raw *= 10e24
