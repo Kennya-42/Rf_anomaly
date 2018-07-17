@@ -5,66 +5,73 @@
 import numpy as np 
 import scipy
 import matplotlib.pyplot as plt
-import seaborn as sns
 import warnings
 import statsmodels.api as sm
-from scipy.fftpack import fft, fftfreq, fftshift
 from sklearn.metrics import mean_squared_error
+import matplotlib.ticker as plticker
 warnings.filterwarnings("ignore")
-np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
+# np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
 ###################################
 #Finds the ARMA prediction for given data.
-def ARMA_Prediction(data, order=(2,0)):
+def ARMA_P(data, order=(2,0)):
     model = sm.tsa.ARMA(data, order)
     result = model.fit(trend='c',disp=0)
     return np.asarray(result.predict())
-
 #############VAR#############
 CENTER_FREQ = 91.3e6
-SAMPLE_RATE = 5000000#5mil/sec
+SAMPLE_RATE = 5000000
 N = 2**21
-SAMPLE_SIZE = 10000#10e3
+SAMPLE_SIZE = 100000
+FILTER_SIZE = 61
+ARMA_SIZE = 25
 #############MAIN#############                                             
-data_raw = scipy.fromfile('out.dat', dtype=complex)    #load data
-data_uf = np.reshape(data_raw, (-1, SAMPLE_SIZE))         #resize into SAMPLE_SIZE chunks
-data = scipy.signal.wiener(data_uf)                       #apply wiener filter to reduce noise
-n = data.shape[0] 
-std = np.std(data,axis=1)
-mean = np.mean(data,axis=1)
-skew = scipy.stats.skew(data,axis=1)
-kurt = scipy.stats.kurtosis(data,axis=1)
-predictions_mean = ARMA_Prediction(mean,order=(2,0))
-predictions_std = ARMA_Prediction(std,order=(2,0))
-predictions_skew = ARMA_Prediction(skew,order=(2,0))
-predictions_kurt = ARMA_Prediction(kurt,order=(2,0))
-freqlist = list()
-print(data.shape)
-for index in range(n):
-    freq = np.fft.fftfreq(SAMPLE_SIZE,1/SAMPLE_RATE)
-    freq += CENTER_FREQ
-    fftd = np.fft.fft(data[index])
-    fftd_abs = np.abs(fftd.T)
-    mask = fftd_abs.flatten().argsort()[::-1][:10]
-    peaks = freq[mask]*10e-7
-    freqlist.append(peaks[0])
+data = scipy.fromfile('out_longest.dat', dtype=complex).astype(np.float32)[:60*SAMPLE_RATE]  #load data
+data *= 10e24                                                                                #rescale data
+data = np.clip(data,-10e4,10e4)                                                              #CLIP data since some values are extreme(maybe cause problems later)
+seconds = data.shape[0]/(2 * SAMPLE_RATE)                                                    #seconds of data
+data = scipy.ndimage.filters.gaussian_filter(data,sigma=1)                                   #guassian filter raw data
+data = np.reshape(data,(-1, SAMPLE_SIZE)).astype(float)                                      #resize into SAMPLE_SIZE chunks
+data = scipy.signal.wiener(data,mysize=FILTER_SIZE)                                          #apply wiener filter to reduce noise
+mean = np.mean(data,axis=1) 
+std =  np.std(data,axis=1)                                                                #get mean 
+mean = scipy.signal.wiener(mean,mysize=FILTER_SIZE)                                          #wiener filter mean data
+std = scipy.signal.wiener(std,mysize=FILTER_SIZE)
+mean = np.reshape(mean,(-1, ARMA_SIZE))                                                      #reshape mean data
+std = np.reshape(std,(-1, ARMA_SIZE))
+print(mean.shape)
+meanp = list()
+stdp = list()
+for index in range(mean.shape[0]):
+    meanp.append( ARMA_P(mean[index],order=(1,0)) )
 
-print(freqlist[:10])
-fig, axs = plt.subplots(5, 1, sharex=True)
-fig.subplots_adjust(hspace=0.5)
-axs[0].plot(mean,label='mean',linewidth=1)
-axs[0].set_title('mean')
-axs[0].plot(predictions_mean,label='mean_pred',linewidth=1,linestyle='dashed')
-axs[1].plot(std,label='std')
-axs[1].set_title('std')
-axs[1].plot(predictions_std,label='std_pred',linewidth=1,linestyle='dashed')
-axs[2].plot(skew,label='skew')
-axs[2].set_title('skew')
-axs[2].plot(predictions_skew,label='skew_pred',linewidth=1,linestyle='dashed')
-axs[3].plot(kurt,label='kurt')
-axs[3].set_title('kurt')
-axs[3].plot(predictions_kurt,label='kurt_pred',linewidth=1,linestyle='dashed')
-axs[4].plot(freqlist,label='freq')
-axs[4].set_yticks([88.1,91.3,95.3])
-axs[4].set_title('freq')
-fig.legend()
+for index in range(std.shape[0]):
+    stdp.append( ARMA_P(std[index],order=(1,0)) )
+
+meanp = np.asarray(meanp).flatten()
+stdp = np.asarray(stdp).flatten()
+diff1 = np.abs(meanp - mean.flatten())
+diff2 = np.abs(stdp - std.flatten()) 
+############################################################################
+fig, axs = plt.subplots(4, 1, sharex=True,sharey='col')
+fig.subplots_adjust(hspace=0.4,left=0.12,right=0.98)
+x2 = np.linspace(0, seconds, (mean.shape[0]*ARMA_SIZE))
+axs[0].set_title('wiener/aram')
+axs[0].semilogx(x2,mean.flatten(),label='wiener',linewidth=1)
+axs[0].semilogx(x2,meanp,label='arma',linewidth=1)
+axs[1].set_title("diffrence arma/mean_filtered")
+axs[1].set_xlabel('seconds')
+axs[1].semilogx(x2,diff1)
+# axs[2].set_title('wiener/aram')
+# axs[2].plot(x2,std.flatten(),label='wiener',linewidth=1)
+# axs[2].plot(x2,stdp,label='arma',linewidth=1)
+# axs[3].plot(x2,diff2)
+# axs[3].set_title("diffrence arma/std_filtered")
+# axs[3].set_xlabel('seconds')
+
+loc = plticker.MultipleLocator(base=1)                                                              #this locator puts ticks at regular intervals
+axs[1].xaxis.set_major_locator(loc)
+fig.legend(loc=3)
+# mse = mean_squared_error(mean.flatten(),meanp)
 plt.show()
+
+

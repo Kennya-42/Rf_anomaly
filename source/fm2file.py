@@ -45,8 +45,8 @@ class fm2file(gr.top_block):
         self.uhd_usrp_source_0.set_center_freq(Center_Freq, 0)
         self.uhd_usrp_source_0.set_gain(45, 0)
         self.uhd_usrp_source_0.set_antenna('TX/RX', 0)
-        self.blocks_head_0 = blocks.head(gr.sizeof_gr_complex*1, 500000000)
-        self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_gr_complex*1, '/home/ken/Rf_anomaly/source/out_longer.dat', False)
+        self.blocks_head_0 = blocks.head(gr.sizeof_gr_complex*1, 2400000000)
+        self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_gr_complex*1, '/home/ken/Rf_anomaly/source/out_longest.dat', False)
         self.blocks_file_sink_0.set_unbuffered(False)
         ##################################################
         # Connections
