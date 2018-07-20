@@ -19,7 +19,6 @@ FILTER_SIZE = 61
 ARMA_SIZE = 25
 ########################################################
 #Finds the ARMA prediction for given data.
-# @profile
 def ARMA_P(sample, order=(1,0)):
     model = sm.tsa.ARMA(sample, order)
     result = model.fit(trend='c',disp=0)
@@ -47,8 +46,7 @@ def linear2db(d):
     res = np.isfinite(d)                                   #zero all none finite values
     np.bitwise_not(res,out=res)
     d[res] = 0
-#############MAIN#############
-                                             
+#############MAIN#############                               
 data = scipy.fromfile('out_longest.dat', dtype=complex)\
     .astype(np.float32)[:SAMPLE_RATE * 120]                 #load data
 seconds = data.shape[0]/(2 * SAMPLE_RATE)                  #seconds of data  
@@ -72,7 +70,6 @@ skew = scipy.signal.wiener(skew,mysize=FILTER_SIZE)
 features = np.vstack((mean,std,skew))
 pca = PCA(n_components=3).fit(features)
 ratios = pca.explained_variance_ratio_
-####
 mean = np.reshape(mean,(-1, ARMA_SIZE))                    #reshape mean data
 std = np.reshape(std,(-1, ARMA_SIZE))
 skew = np.reshape(skew,(-1, ARMA_SIZE))
