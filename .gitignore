@@ -1,3 +1,5 @@
 *.dat
 .vscode
 test.py
+/test radio
+__pycache__
