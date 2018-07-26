@@ -4,7 +4,6 @@ import scipy
 import matplotlib.pyplot as plt
 import warnings
 warnings.filterwarnings("ignore")
-# np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
 ###################################
 CENTER_FREQ = 91.3e6
 SAMPLE_RATE = 5000000#5mil/sec

@@ -2,95 +2,84 @@
 # rf_anomaly.py
 # Author: Ken Alexopoulos
 # Script to look at rf data
-import numpy as np 
-import scipy
-from scipy.ndimage.filters import gaussian_filter
-import matplotlib.pyplot as plt
-import warnings
-import statsmodels.api as sm
-from sklearn.metrics import mean_squared_error
 import matplotlib.ticker as plticker
+import matplotlib.pyplot as plt
+import numpy as np
+import warnings
+import scipy
+import gc
+from rf_func import *
 warnings.filterwarnings("ignore")
-###################################
-#Finds the ARMA prediction for given data.
-def ARMA_P(data, order=(1,0)):
-    model = sm.tsa.ARMA(data, order)
-    result = model.fit(trend='c',disp=0)
-    return np.asarray(result.predict())
+def main():
+#############VAR#################
+    CHUNK_SIZE = 1600000000
+    CENTER_FREQ = 91300000
+    SAMPLE_RATE = 5000000
+    SAMPLE_SIZE = 500000
+    FILTER_SIZE = 61
+    ARMA_SIZE = 25
+    f = open("out_longest.dat", "rb")
+    meand,skewd,stdd,fftp = [],[],[],[]
+    n = 1
+    with f:
+        while True:
+            chunk = f.read(CHUNK_SIZE)
+            if not chunk:
+                break
+            data = np.frombuffer(chunk,dtype=complex).astype(np.complex64)
+            fftp = np.append(fftp,getfftInfo(data))
+            np.abs(data,out=data) #convert to magnitude
+            data = data.real.astype(np.float32)
+            t1,t2,t3 = pipeline(data,n)
+            meand = np.append(meand,t1)
+            stdd  = np.append(stdd,t2)
+            skewd = np.append(skewd,t3)
+            # if n == 2:
+            #     break
+            n += 1
+            gc.collect()
+    print('Finish!')
+    meand = (meand - meand.min())/meand.max()                    
+    stdd = (stdd - stdd.min())/stdd.max()
+    skewd = (skewd - skewd.min())/skewd.max()
+    features = np.vstack((meand,stdd,skewd))
+    pca = PCA(n_components=3).fit(features)
+    ratios = pca.explained_variance_ratio_
+    diff = (meand * ratios[0])+(stdd * ratios[1])+(skewd * ratios[2])
+    samples = diff.shape[0]
+    Npoints = (samples)*SAMPLE_SIZE             
+    seconds = (Npoints)/(2 * SAMPLE_RATE)           
+    timescale = np.linspace(0, seconds, samples)
+    anomalys = np.argwhere(diff > 0.5)
+    for i in anomalys:
+        print('anomaly at: ',timescale[i],'sec')
+        print('peak freak is: ',fftp[i])
+    fig, axs = plt.subplots(5, 1, sharex=True)
+    fig.subplots_adjust(hspace=0.8,left=0.12,right=0.98)
+    axs[0].set_title("mean diffrence")
+    axs[0].set_xlabel('seconds')
+    axs[0].plot(timescale,meand)
+    axs[1].set_title("std diffrence")
+    axs[1].set_xlabel('seconds')
+    axs[1].plot(timescale,stdd)
+    axs[2].set_title("skew diffrence")
+    axs[2].set_xlabel('seconds')
+    axs[2].plot(timescale,skewd)
+    axs[3].set_title("comb diffrence")
+    axs[3].set_xlabel('seconds')
+    axs[3].plot(timescale,diff)
+    axs[4].set_title("peak freqs")
+    axs[4].set_yticks([89.3,91.3,93.1])
+    axs[4].set_xlabel('seconds')
+    axs[4].plot(timescale,fftp)
+    for index in anomalys:
+        axs[3].axvspan(timescale[index], timescale[index+1], color='red', alpha=1)
+    # plt.show()
+if __name__ == "__main__":
+    main()
 
-#############VAR#############
-CENTER_FREQ = 91.3e6
-SAMPLE_RATE = 5000000
-N = 2**21
-SAMPLE_SIZE = 500000#100000
-FILTER_SIZE = 61
-ARMA_SIZE = 25
-#############MAIN#############                                             
-data = scipy.fromfile('out_longest.dat', dtype=complex)\
-    .astype(np.float32)[:SAMPLE_RATE * 10]                #load data
-# data *= 10e24                                           #rescale data
-# data = np.clip(data,-10e4,10e4)                         #CLIP data since some values are extreme(maybe cause problems later)
-np.log10(np.absolute(data),out=data)
-res = np.isfinite(data)
-np.bitwise_not(res,out=res)
-data[res] = 0
-data += abs(data.min())
-plt.plot(data[:SAMPLE_SIZE],markevery=100)
-plt.ion()
-seconds = data.shape[0]/(2 * SAMPLE_RATE)                 #seconds of data
-print('seconds: ',seconds)
-data = gaussian_filter(data,sigma=1)                      #guassian filter raw data
-print('Data has been smoothed!')
-data = np.reshape(data,(-1, SAMPLE_SIZE))                 #resize into SAMPLE_SIZE chunks
-NWIN = data.shape[0]
-timescale = np.linspace(0, seconds, NWIN)
-data = scipy.signal.wiener(data,mysize=FILTER_SIZE)       #apply wiener filter to reduce noise
-mean = np.mean(data,axis=1)
-std =  np.std(data,axis=1)
-skew = scipy.stats.skew(data,axis=1)                      #get mean 
-mean = scipy.signal.wiener(mean,mysize=FILTER_SIZE)       #wiener filter mean data
-std = scipy.signal.wiener(std,mysize=FILTER_SIZE)
-skew = scipy.signal.wiener(skew,mysize=FILTER_SIZE)
-mean = np.reshape(mean,(-1, ARMA_SIZE))                   #reshape mean data
-std = np.reshape(std,(-1, ARMA_SIZE))
-skew = np.reshape(skew,(-1, ARMA_SIZE))
-meanp,stdp,skewp = [],[],[]                                                                 
-for index in range(mean.shape[0]):
-    meanp.append( ARMA_P(mean[index],order=(1,0)) )
-
-# for index in range(std.shape[0]):
-#     stdp.append( ARMA_P(std[index],order=(1,0)) )
-
-# for index in range(skew.shape[0]):
-#     skewp.append( ARMA_P(skew[index],order=(1,0)) )
-
-meanp = np.asarray(meanp).flatten()
-# stdp = np.asarray(stdp).flatten()
-# skewp = np.asarray(skewp).flatten()
-np.absolute(mean,out=mean)
-np.absolute(meanp,out=meanp)
-meanp += abs(meanp.min())
-mean += abs(mean.min())
-# diff1 = np.abs(meanp - mean.flatten())
-# diff1 = (diff1 - diff1.min())/diff1.max()
-# diff2 = np.abs(stdp - std.flatten()) 
-# diff2 = (diff2 - diff2.min())/diff2.max()
-# diff3 = np.abs(skewp - skew.flatten())
-# diff3 = (diff3 - diff3.min())/diff3.max() 
-############################################################################
-# fig, axs = plt.subplots(2, 1, sharex=True)
-# fig.subplots_adjust(hspace=0.8,left=0.12,right=0.98)
-
-# plt.plot(timescale,mean.flatten(),label='mean',markevery=5)
-# plt.plot(timescale,meanp.flatten(),label='meanp',markevery=5)
-# plt.legend()
-# axs[1].set_title("mean diffrence")
-# axs[1].set_xlabel('seconds')
-# print(diff1.shape)
-# axs[1].plot(diff1,label='diff1')
-# loc = plticker.MultipleLocator(base=1)                #this locator puts ticks at regular intervals
-# axs[0].xaxis.set_major_locator(loc)
-# fig.legend(loc=3)
-plt.show()
+        
 
 
+
+        
