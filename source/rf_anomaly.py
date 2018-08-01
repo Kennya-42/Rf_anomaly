@@ -34,8 +34,8 @@ def main():
             meand = np.append(meand,t1)
             stdd  = np.append(stdd,t2)
             skewd = np.append(skewd,t3)
-            # if n == 2:
-            #     break
+            if n == 2:
+                break
             n += 1
             gc.collect()
     print('Finish!')

@@ -34,8 +34,8 @@ def main():
             meand = np.append(meand,t1)
             stdd  = np.append(stdd,t2)
             skewd = np.append(skewd,t3)
-            # if n == 2:
-            #     break
+            if n == 8:
+                break
             n += 1
             gc.collect()
     print('Finish!')
@@ -74,7 +74,7 @@ def main():
     axs[4].plot(timescale,fftp)
     for index in anomalys:
         axs[3].axvspan(timescale[index], timescale[index+1], color='red', alpha=1)
-    # plt.show()
+    plt.show()
 if __name__ == "__main__":
     main()
 

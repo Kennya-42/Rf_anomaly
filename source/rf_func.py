@@ -14,7 +14,6 @@ def ARMA_P(sample, order=(1,0)):
 # pfreq: peak frequencies of each window.
 def getfftInfo(d,sampsize=500000,samprate=5000000,cfreq=91.3e6):
     pfreq = []
-    print(d[0])
     d = np.reshape(d,(-1, sampsize))
     for i in range(d.shape[0]):
         freq = np.fft.fftfreq(sampsize,1/samprate)
@@ -22,13 +21,10 @@ def getfftInfo(d,sampsize=500000,samprate=5000000,cfreq=91.3e6):
         fftd = np.fft.fft(d[i:i+1],axis=1)
         fftd_abs = np.abs(fftd.T)
         fftd_db = 20*np.log(fftd_abs)
-        plt.plot(freq,fftd_db)
-        plt.show()
-        break
         fftd_db += 877
         mask = fftd_db < 0
         fftd_db[mask] = 0
-        mask = fftd_db.flatten().argsort()[::-1][:1]
+        mask = fftd_abs.flatten().argsort()[::-1][:1]
         peaks = freq[mask]*10e-7
         pfreq.append(peaks[0])
     return pfreq
