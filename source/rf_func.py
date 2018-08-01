@@ -75,3 +75,32 @@ def pipeline(data,n=1,sampsize=500000,samprate=5000000,f_size=61,a_size=25):
     # diff3 = (diff3 - diff3.min())/diff3.max()
     # diffc = (diff1 * ratios[0])+(diff2 * ratios[1])+(diff3 * ratios[2])
     return diff1,diff2,diff3
+    
+def fft_downsample(ffto,b=500000,rate=2,sampsize=500000,samprate=5000000,cfreq=91.3e6,mode='mean'):
+    freqo = np.fft.fftfreq(sampsize,1/samprate)
+    s = freqo.shape[0]//2
+    freqo = np.append(freqo[s:],freqo[:s])
+    freqo += CENTER_FREQ
+    band = int((SAMPLE_SIZE/SAMPLE_RATE)*b)#500mhz
+    ft,freq = [],[]
+    fftn,freqn = [],[]
+    #Downsample using the mean to combine samples.
+    for i in range(0,int(s-band),rate):
+        if mode == 'mean':
+            ft = np.append(ft,(ffto[i]+ffto[i+1])/2)#downsample before primaryband
+            fftn.append((ffto[s+band+i]+ffto[s+band+i+1])/2)#downsample after primaryband
+            freq = np.append(freq,(freqo[i]+freqo[i+1])/2)#downsample freq
+            freqn.append((freqo[s+band+i]+freqo[s+band+i+1])/2)
+        else:
+            ft = np.append(ft,ffto[i])#downsample before primaryband
+            fftn.append(ffto[s+band+i])#downsample after primaryband
+            freq = np.append(freq,(freqo[i]))#downsample freq
+            freqn.append(freqo[s+band+i])
+    #######################################################        
+    fftn = np.asarray(fftn)
+    freqn = np.asarray(freqn)
+    ft = np.append(ft,ffto[s-band:s+band])
+    ft = np.append(ft,fftn)
+    freq = np.append(freq,freqo[s-band:s+band])
+    freq= np.append(freq,freqn)
+    return ft,freq
