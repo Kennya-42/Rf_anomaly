@@ -18,6 +18,7 @@ def main():
     SAMPLE_SIZE = 500000
     FILTER_SIZE = 61
     ARMA_SIZE = 25
+    FFT_SIZE = 2**15
     f = open("out_longest.dat", "rb")
     meand,skewd,stdd,fftp = [],[],[],[]
     n = 1
@@ -27,7 +28,7 @@ def main():
             if not chunk:
                 break
             data = np.frombuffer(chunk,dtype=complex).astype(np.complex64)
-            fftp = np.append(fftp,getfftInfo(data))
+            fftp = np.append(fftp,getfftInfo(data,fftsize=FFT_SIZE))
             np.abs(data,out=data) #convert to magnitude
             data = data.real.astype(np.float32)
             t1,t2,t3 = pipeline(data,n)
@@ -74,7 +75,7 @@ def main():
     axs[4].plot(timescale,fftp)
     for index in anomalys:
         axs[3].axvspan(timescale[index], timescale[index+1], color='red', alpha=1)
-    # plt.show()
+    plt.show()
 if __name__ == "__main__":
     main()
 

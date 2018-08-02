@@ -1,3 +1,7 @@
+#!/usr/bin/python3
+# rf_func.py
+# Author: Ken Alexopoulos
+# helper functions to look at rf data
 import numpy as np
 import scipy
 import gc
@@ -12,13 +16,15 @@ def ARMA_P(sample, order=(1,0)):
 # get the peak frequencies from fft
 # d: raw flat time series data
 # pfreq: peak frequencies of each window.
-def getfftInfo(d,sampsize=500000,samprate=5000000,cfreq=91.3e6):
+def getfftInfo(d,sampsize=500000,samprate=5000000,cfreq=91.3e6,fftsize=500000):
     pfreq = []
     d = np.reshape(d,(-1, sampsize))
     for i in range(d.shape[0]):
-        freq = np.fft.fftfreq(sampsize,1/samprate)
+        # freq = np.fft.fftfreq(sampsize,1/samprate)
+        freq = np.fft.fftfreq(fftsize,1/samprate)
         freq += cfreq
-        fftd = np.fft.fft(d[i:i+1],axis=1)
+        fftd = np.fft.fft(d[i:i+1],axis=1,n=fftsize).flatten()
+        fftd,freq = fft_downsample(fftd,b=500000,rate=2,sampsize=500000,samprate=5000000,cfreq=91.3e6,mode='mean',fftsize=fftsize)
         fftd_abs = np.abs(fftd.T)
         fftd_db = 20*np.log(fftd_abs)
         fftd_db += 877
@@ -75,13 +81,15 @@ def pipeline(data,n=1,sampsize=500000,samprate=5000000,f_size=61,a_size=25):
     # diff3 = (diff3 - diff3.min())/diff3.max()
     # diffc = (diff1 * ratios[0])+(diff2 * ratios[1])+(diff3 * ratios[2])
     return diff1,diff2,diff3
-    
-def fft_downsample(ffto,b=500000,rate=2,sampsize=500000,samprate=5000000,cfreq=91.3e6,mode='mean'):
-    freqo = np.fft.fftfreq(sampsize,1/samprate)
+
+def fft_downsample(ffto,b=500000,rate=2,sampsize=500000,samprate=5000000,cfreq=91.3e6,mode='mean',fftsize=500000):
+    # freqo = np.fft.fftfreq(sampsize,1/samprate)
+    ffto = np.fft.fftshift(ffto)
+    freqo = np.fft.fftfreq(fftsize,1/samprate)
     s = freqo.shape[0]//2
     freqo = np.append(freqo[s:],freqo[:s])
-    freqo += CENTER_FREQ
-    band = int((SAMPLE_SIZE/SAMPLE_RATE)*b)#500mhz
+    freqo += cfreq
+    band = int((fftsize/samprate)*b)#500mhz
     ft,freq = [],[]
     fftn,freqn = [],[]
     #Downsample using the mean to combine samples.
