@@ -1,3 +1,7 @@
+#!/usr/bin/python3
+# rf_iris.py
+# Author: Ken Alexopoulos
+# Script to look at downsampling
 import numpy as np 
 import scipy
 from scipy import signal

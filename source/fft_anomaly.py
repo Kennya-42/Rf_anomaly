@@ -1,4 +1,7 @@
 #!/usr/bin/python3
+# fft_anomaly.py
+# Author: Ken Alexopoulos
+# Script to look at fft features
 import numpy as np 
 import scipy
 from scipy import signal
@@ -9,7 +12,6 @@ warnings.filterwarnings("ignore")
 ###################################
 CENTER_FREQ = 91.3e6
 SAMPLE_RATE = 5000000#5mil/sec
-# SAMPLE_SIZE = 100000
 SAMPLE_SIZE = 2**15
 data = scipy.fromfile('out_longest.dat', dtype=complex)[:SAMPLE_SIZE * 2]
 seconds = data.shape[0]/(2 * SAMPLE_RATE)

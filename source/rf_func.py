@@ -13,6 +13,7 @@ def ARMA_P(sample, order=(1,0)):
     model = sm.tsa.ARMA(sample, order)
     result = model.fit(trend='c',disp=0)
     return np.asarray(result.predict())
+
 # get the peak frequencies from fft
 # d: raw flat time series data
 # pfreq: peak frequencies of each window.
@@ -34,6 +35,7 @@ def getfftInfo(d,sampsize=500000,samprate=5000000,cfreq=91.3e6,fftsize=500000):
         peaks = freq[mask]*10e-7
         pfreq.append(peaks[0])
     return pfreq
+
 # convert to finite array in log scale
 # d: raw linear timeseries data
 # returns the transformation inplace to save space
@@ -42,6 +44,7 @@ def linear2db(d):
     res = np.isfinite(d)
     np.bitwise_not(res,out=res)
     d[res] = 0
+
 # main pipeline preformed in chunksize pieces
 # data: raw timeseries data
 # n: current iteration
@@ -51,7 +54,6 @@ def pipeline(data,n=1,sampsize=500000,samprate=5000000,f_size=61,a_size=25):
     linear2db(data) 
     data += abs(data.min())                       #shift data
     data = np.reshape(data,(-1, sampsize))     #resize to SAMPLE_SIZE chunks
-    # data = scipy.signal.wiener(data,mysize=f_size)#wiener filter noise
     mean = np.mean(data,axis=1) 
     std =  np.std(data,axis=1)
     skew = scipy.stats.skew(data,axis=1)            #get mean 
@@ -76,14 +78,9 @@ def pipeline(data,n=1,sampsize=500000,samprate=5000000,f_size=61,a_size=25):
     diff1 = np.abs(meanp - mean.flatten())        #get dif between prediction
     diff2 = np.abs(stdp - std.flatten())       
     diff3 = np.abs(skewp - skew.flatten())
-    # diff1 = (diff1 - diff1.min())/diff1.max()
-    # diff2 = (diff2 - diff2.min())/diff2.max()
-    # diff3 = (diff3 - diff3.min())/diff3.max()
-    # diffc = (diff1 * ratios[0])+(diff2 * ratios[1])+(diff3 * ratios[2])
     return diff1,diff2,diff3
 
 def fft_downsample(ffto,b=500000,rate=2,sampsize=500000,samprate=5000000,cfreq=91.3e6,mode='mean',fftsize=500000):
-    # freqo = np.fft.fftfreq(sampsize,1/samprate)
     ffto = np.fft.fftshift(ffto)
     freqo = np.fft.fftfreq(fftsize,1/samprate)
     s = freqo.shape[0]//2

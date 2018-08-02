@@ -1,7 +1,7 @@
 #!/usr/bin/python3
-# rf_anomaly.py
+# feat_anomaly.py
 # Author: Ken Alexopoulos
-# Script to look at rf data
+# Script to look at time domain features
 import matplotlib.ticker as plticker
 import matplotlib.pyplot as plt
 import numpy as np

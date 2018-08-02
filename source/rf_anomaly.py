@@ -40,7 +40,7 @@ def main():
             n += 1
             gc.collect()
     print('Finish!')
-    meand = (meand - meand.min())/meand.max()                    
+    meand = (meand - meand.min())/meand.max()                  
     stdd = (stdd - stdd.min())/stdd.max()
     skewd = (skewd - skewd.min())/skewd.max()
     features = np.vstack((meand,stdd,skewd))
