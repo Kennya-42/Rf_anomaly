@@ -12,22 +12,22 @@ from rf_func import *
 warnings.filterwarnings("ignore")
 def main():
 #############VAR#################
-    CHUNK_SIZE = 1600000000
-    CENTER_FREQ = 91300000
-    SAMPLE_RATE = 5000000
-    SAMPLE_SIZE = 500000
-    FILTER_SIZE = 61
-    ARMA_SIZE = 25
-    FFT_SIZE = 2**15
+    CHUNK_SIZE = 1600000000 #how many raw bytes of data to read(10seconds)
+    CENTER_FREQ = 91300000  #centeral frequency from the SDR
+    SAMPLE_RATE = 5000000   #Sample rate same as SDR
+    SAMPLE_SIZE = 500000    #window of data to look at.
+    FILTER_SIZE = 61        #wiener filter size
+    ARMA_SIZE = 25          #number of windows to model with arma
+    FFT_SIZE = 2**15        #fft size
     f = open("out_longest.dat", "rb")
     meand,skewd,stdd,fftp = [],[],[],[]
     n = 1
     with f:
         while True:
-            chunk = f.read(CHUNK_SIZE)
+            chunk = f.read(CHUNK_SIZE) #read a chunk of data from disk
             if not chunk:
                 break
-            data = np.frombuffer(chunk,dtype=complex).astype(np.complex64)
+            data = np.frombuffer(chunk,dtype=complex).astype(np.complex64) #cast smaller
             fftp = np.append(fftp,getfftInfo(data,fftsize=FFT_SIZE))
             np.abs(data,out=data) #convert to magnitude
             data = data.real.astype(np.float32)
@@ -35,8 +35,8 @@ def main():
             meand = np.append(meand,t1)
             stdd  = np.append(stdd,t2)
             skewd = np.append(skewd,t3)
-            if n == 2:
-                break
+            # if n == 2:
+            #     break
             n += 1
             gc.collect()
     print('Finish!')
@@ -44,7 +44,7 @@ def main():
     stdd = (stdd - stdd.min())/stdd.max()
     skewd = (skewd - skewd.min())/skewd.max()
     features = np.vstack((meand,stdd,skewd))
-    pca = PCA(n_components=3).fit(features)
+    pca = PCA(n_components=3).fit(features) #incremental pca with partial fit could help stream data https://stackoverflow.com/questions/31428581/incremental-pca-on-big-data
     ratios = pca.explained_variance_ratio_
     diff = (meand * ratios[0])+(stdd * ratios[1])+(skewd * ratios[2])
     samples = diff.shape[0]
