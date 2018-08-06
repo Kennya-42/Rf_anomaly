@@ -19,7 +19,7 @@ def main():
     FILTER_SIZE = 61        #wiener filter size
     ARMA_SIZE = 25          #number of windows to model with arma
     FFT_SIZE = 2**15        #fft size
-    f = open("out_longest.dat", "rb")
+    f = open("big.dat", "rb")
     meand,skewd,stdd,fftp = [],[],[],[]
     n = 1
     with f:

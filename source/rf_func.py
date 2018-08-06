@@ -24,17 +24,13 @@ def getfftInfo(d,sampsize=500000,samprate=5000000,cfreq=91.3e6,fftsize=500000,b=
         freq = np.fft.fftfreq(fftsize,1/samprate)
         freq += cfreq
         fftd = np.fft.fft(d[i:i+1].flatten(),n=fftsize)/fftsize
-        fftd,freq = fft_downsample(fftd,b=200000,rate=2,sampsize=500000,samprate=5000000,cfreq=91.3e6,mode='skip',fftsize=fftsize)
-        # plt.plot(freq)
-        # plt.show()
+        # fftd,freq = fft_downsample(fftd,b=200000,rate=2,sampsize=500000,samprate=5000000,cfreq=91.3e6,mode='skip',fftsize=fftsize)
         fftd_abs = np.abs(fftd)
         # fftd_db = 20*np.log(fftd_abs/np.mean(fftd_abs[:100]))#if you need in decibel not required for peak freq
         band = int((fftsize/samprate)*b)#500mhz
         s = freq.shape[0]//2
         fftd_abs = fftd_abs[band:-band]
         freq = freq[band:-band]
-        # plt.plot(freq,fftd_abs)
-        # plt.show()
         mask = fftd_abs.flatten().argsort()[::-1][:1]
         peaks = freq[mask]*10e-7
         pfreq.append(peaks[0])
