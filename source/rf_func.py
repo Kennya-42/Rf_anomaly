@@ -19,7 +19,7 @@ def ARMA_P(sample, order=(1,0)):
 # pfreq: peak frequencies of each window.
 def getfftInfo(d,sampsize=500000,samprate=5000000,cfreq=91.3e6,fftsize=500000,b=200000):
     pfreq = []
-    d = np.reshape(d,(-1, sampsize)) 
+    d = np.reshape(d,(-1, sampsize))
     for i in range(d.shape[0]):
         freq = np.fft.fftfreq(fftsize,1/samprate)
         freq += cfreq
@@ -55,12 +55,19 @@ def pipeline(data,n=1,sampsize=500000,samprate=5000000,f_size=61,a_size=25):
     data += abs(data.min()) #shift data
     data = np.reshape(data,(-1, sampsize)) #resize to sampsize chunks
     mean = np.mean(data,axis=1) 
+    timescale = np.linspace(0, seconds, int(mean.shape[0]))
+    
     std =  np.std(data,axis=1)
     skew = scipy.stats.skew(data,axis=1) #get mean 
     del data #raw data is not needed anymore so force free it (120sec=20gb)
     mean = scipy.signal.wiener(mean,mysize=f_size) #wiener filter mean data
     std = scipy.signal.wiener(std,mysize=f_size) 
     skew = scipy.signal.wiener(skew,mysize=f_size)
+    plt.plot(timescale,mean)
+    plt.title('mean Amplitude')
+    plt.xlabel('Seconds')
+    plt.ylabel('Amplitude [dB]')
+    plt.show()
     features = np.vstack((mean,std,skew))
     pca = PCA(n_components=3).fit(features) #pca on features to get the covarience
     ratios = pca.explained_variance_ratio_
