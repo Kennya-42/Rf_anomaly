@@ -9,6 +9,7 @@ import statsmodels.api as sm #for arma modeling
 import matplotlib.pyplot as plt 
 from sklearn.decomposition import PCA
 #Finds the ARMA prediction for given data.
+# order is the p,q terms most fail to converge unless you use (1,1) (1,0) (0,1) (2,0) (0,2)
 def ARMA_P(sample, order=(1,0)):
     model = sm.tsa.ARMA(sample, order)
     result = model.fit(trend='c',disp=0)
@@ -17,6 +18,7 @@ def ARMA_P(sample, order=(1,0)):
 # get the peak frequencies from fft
 # d: raw flat time series data
 # pfreq: peak frequencies of each window.
+#b is bandwidth to preserve in hz
 def getfftInfo(d,sampsize=500000,samprate=5000000,cfreq=91.3e6,fftsize=500000,b=200000):
     pfreq = []
     d = np.reshape(d,(-1, sampsize))
@@ -24,7 +26,7 @@ def getfftInfo(d,sampsize=500000,samprate=5000000,cfreq=91.3e6,fftsize=500000,b=
         freq = np.fft.fftfreq(fftsize,1/samprate)
         freq += cfreq
         fftd = np.fft.fft(d[i:i+1].flatten(),n=fftsize)/fftsize
-        # fftd,freq = fft_downsample(fftd,b=200000,rate=2,sampsize=500000,samprate=5000000,cfreq=91.3e6,mode='skip',fftsize=fftsize)
+        fftd,freq = fft_downsample(fftd,b=200000,rate=2,sampsize=500000,samprate=5000000,cfreq=91.3e6,mode='skip',fftsize=fftsize)
         fftd_abs = np.abs(fftd)
         # fftd_db = 20*np.log(fftd_abs/np.mean(fftd_abs[:100]))#if you need in decibel not required for peak freq
         band = int((fftsize/samprate)*b)#500mhz
@@ -48,6 +50,8 @@ def linear2db(d):
 # main pipeline preformed in chunksize pieces
 # data: raw timeseries data
 # n: current iteration
+# f_size : filter size 61 works well
+# a_size : number of windows to feed the arma predictor at a time. 25+ the higher the better but might fail to converge.
 def pipeline(data,n=1,sampsize=500000,samprate=5000000,f_size=61,a_size=25):
     seconds = data.shape[0]/(2 * samprate)        #seconds of data 
     print('Seconds of Data processed: ',(seconds * n),flush=True)
@@ -55,19 +59,12 @@ def pipeline(data,n=1,sampsize=500000,samprate=5000000,f_size=61,a_size=25):
     data += abs(data.min()) #shift data
     data = np.reshape(data,(-1, sampsize)) #resize to sampsize chunks
     mean = np.mean(data,axis=1) 
-    timescale = np.linspace(0, seconds, int(mean.shape[0]))
-    
     std =  np.std(data,axis=1)
     skew = scipy.stats.skew(data,axis=1) #get mean 
-    del data #raw data is not needed anymore so force free it (120sec=20gb)
+    del data #raw data is not needed anymore so force free it (120sec~20gb)
     mean = scipy.signal.wiener(mean,mysize=f_size) #wiener filter mean data
     std = scipy.signal.wiener(std,mysize=f_size) 
     skew = scipy.signal.wiener(skew,mysize=f_size)
-    plt.plot(timescale,mean)
-    plt.title('mean Amplitude')
-    plt.xlabel('Seconds')
-    plt.ylabel('Amplitude [dB]')
-    plt.show()
     features = np.vstack((mean,std,skew))
     pca = PCA(n_components=3).fit(features) #pca on features to get the covarience
     ratios = pca.explained_variance_ratio_
@@ -87,7 +84,11 @@ def pipeline(data,n=1,sampsize=500000,samprate=5000000,f_size=61,a_size=25):
     diff2 = np.abs(stdp - std.flatten())       
     diff3 = np.abs(skewp - skew.flatten())
     return diff1,diff2,diff3
-
+    
+# ffto : fft to downsample
+# B    : bandwidth in hz
+# rate : how aggresive the downsample
+# mode :type of down sampling mean or decimation
 def fft_downsample(ffto,b=500000,rate=2,sampsize=500000,samprate=5000000,cfreq=91.3e6,mode='mean',fftsize=500000):
     ffto = np.fft.fftshift(ffto)
     freqo = np.fft.fftfreq(fftsize,1/samprate)

@@ -13,14 +13,14 @@ warnings.filterwarnings("ignore")
 CENTER_FREQ = 91.3e6
 SAMPLE_RATE = 5000000#5mil/sec
 SAMPLE_SIZE = 2**15
-data = scipy.fromfile('out_longest.dat', dtype=complex)[:SAMPLE_RATE * 10]
+data = scipy.fromfile('out_longest.dat', dtype=complex)[:SAMPLE_SIZE * 10]
 seconds = data.shape[0]/(2 * SAMPLE_RATE)
 print('Seconds of Data: ',seconds,flush=True)
-timescale = np.linspace(0, seconds, int(data.shape[0]))
-plt.plot(timescale,data)
-plt.xlabel('Seconds')
-plt.ylabel('Amplitude')
-plt.show()
+# timescale = np.linspace(0, seconds, int(data.shape[0]))
+# plt.plot(timescale,data)
+# plt.xlabel('Seconds')
+# plt.ylabel('Amplitude')
+# plt.show()
 data = np.reshape(data,(-1, SAMPLE_SIZE))
 freq = np.fft.fftfreq(SAMPLE_SIZE,1/SAMPLE_RATE)
 freq += CENTER_FREQ
